@@ -1,0 +1,76 @@
+---
+title: "R Notebook"
+output: html_document
+---
+```{r}
+# install.packages("ClusterR")
+# install.packages("cluster")
+
+# Loading package
+library(ClusterR)
+library(cluster)
+```
+```{r}
+# import the iris data from the docker
+result <- system("docker exec namenode hdfs dfs -cat ./input/iris.csv", intern = TRUE)
+writeLines(result, "./kmean/temp_iris.csv")
+iris_data <- read.csv("./kmean/temp_iris.csv",
+                      header = FALSE,
+                      colClasses = c(NA, NA, NA, NA, NA),
+                      col.names = c("sepal_length", "sepal_width", "petal_length", "petal_width", "species"))
+```
+```{r}
+# subtract the iris_params, which only contain the sepal and petal numberical values
+iris_params <- iris_data[, -5]
+```
+```{r}
+# fit into k-mean clustering
+set.seed(100) # set the seed
+kmean_model <- kmeans(iris_params, centers = 3, nstart = 20) # set the nums of certoids as 3 and iterate 20 times
+# kmean_model
+```
+```{r}
+# Cluster identification for each observation
+kmean_model$cluster
+```
+```{r}
+# # Confusion Matrix
+cm <- table(iris_data$species, kmean_model$cluster)
+cm
+
+```
+```{r}
+# Evaluate and visualize the model
+plot(iris_params[c("sepal_length", "sepal_width")], col = kmean_model$cluster,
+     main = "K-means with 3 Clusters on Iris Sepal Profile")
+
+plot(iris_params[c("petal_length", "petal_width")], col = kmean_model$cluster,
+     main = "K-means with 3 Clusters on Iris Petal Profile")
+```
+```{r}
+## Plotiing cluster centers base on sepal and petal configuration
+# kmean_model$centers
+kmean_model$centers[, c("sepal_length", "sepal_width", "petal_length", "petal_width")]
+
+```
+
+```{r}
+# # visualzie the central points on the scope of sepal_length and sepal_width
+# points(kmean_model$centers[, c("sepal_length", "sepal_width")],
+#        col = 1:3, pch = 8, cex = 3)
+```
+```{r}
+## Visualizing clusters
+y_kmeans <- kmean_model$cluster
+clusplot(iris_params[, c("sepal_length", "sepal_width")],
+         y_kmeans,
+         lines = 0,
+         shade = TRUE,
+         color = TRUE,
+         labels = 2,
+         plotchar = FALSE,
+         span = TRUE,
+         main = paste("Cluster iris"),
+         xlab = 'sepal_length',
+         ylab = 'sepal_width')
+```
