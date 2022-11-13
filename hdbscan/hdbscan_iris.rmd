@@ -2,13 +2,18 @@
 title: "R Notebook"
 output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
 ```{r}
 # install.packages("ClusterR")
 # install.packages("cluster")
+# install.packages("DescTools")
 
 # Loading package
 library(ClusterR)
 library(cluster)
+library(DescTools)
 ```
 ```{r}
 # import the iris data from the docker
@@ -24,9 +29,38 @@ iris_data <- read.csv("./hdbscan/temp_iris.csv",
 iris_params <- iris_data[, -5]
 iris_params
 ```
-## Step 1 Work out the core distance, mutual reachability distance and mutual reachability distance graph
+## Part 1 - Work out the core distance, mutual reachability distance and mutual reachability distance graph
 ```{r}
 # create distance matrix for each data point pairs
-dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
-dist_matrix
+L2_dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
+L2_dist_matrix
 ```
+```{r}
+# caluclate the core ditance for each data point base on parameter k
+k_param <- 3 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
+core_dist <- apply(L2_dist_matrix, 1, FUN = function(x) Small(x, k = k_param + 1, unique = FALSE, na.last = NA)[k])
+
+core_dist[1]
+```
+```{r}
+
+# build the mutal distance matrix
+dp_num = dim(iris_params)[1]
+mutal_dist_matrix <- matrix(, nrow = dp_num, ncol = dp_num)
+
+for (row_idx in 1:dp_num) {
+  for (col_idx in 1:dp_num) {
+    if (row_idx != col_idx) {
+      #mutal distance is the max of (L2_dist(x,y), core_dist(x),core_dist(y))
+      mutal_dist_matrix[row_idx, col_idx] <- max(L2_dist_matrix[row_idx, col_idx], core_dist[row_idx], core_dist[col_idx])
+    }
+    else {
+      mutal_dist_matrix[row_idx, col_idx] = 0
+    }
+  }
+}
+
+mutal_dist_matrix
+
+```
+## Part II Build the minimum spanning tree
