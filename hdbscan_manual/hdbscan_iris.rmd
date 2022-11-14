@@ -9,17 +9,21 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # install.packages("ClusterR")
 # install.packages("cluster")
 # install.packages("DescTools")
+# install.packages("igraph")
+# install.packages("dbscan")
 
 # Loading package
 library(ClusterR)
 library(cluster)
 library(DescTools)
+library(igraph)
+library(dbscan)
 ```
 ```{r}
 # import the iris data from the docker
 result <- system("docker exec namenode hdfs dfs -cat ./input/iris.csv", intern = TRUE)
-writeLines(result, "./hdbscan/temp_iris.csv")
-iris_data <- read.csv("./hdbscan/temp_iris.csv",
+writeLines(result, "./hdbscan_manual/temp_iris.csv")
+iris_data <- read.csv("./hdbscan_manual/temp_iris.csv",
                       header = FALSE,
                       colClasses = c(NA, NA, NA, NA, NA),
                       col.names = c("sepal_length", "sepal_width", "petal_length", "petal_width", "species"))
@@ -61,6 +65,21 @@ for (row_idx in 1:dp_num) {
 }
 
 mutal_dist_matrix
-
 ```
 ## Part II Build the minimum spanning tree
+```{r}
+temp_graph = mutal_dist_matrix
+# Step 1: Convert the matrix into the upper triangle matrix firstly
+temp_graph[upper.tri(temp_graph)] <- 0
+
+temp_graph_undirected <- as.undirected(graph.adjacency(temp_graph, weighted = TRUE))
+graph_MST <- mst(temp_graph_undirected)
+graph_MST
+```
+```{r}
+# Step 2: Turn back to the triangle matrix
+temp_adjacent_matrix <- as_adjacency_matrix(graph_MST, type = "lower", attr = "weight")
+MinimumSpanning_matrix <- matrix(temp_adjacent_matrix, nrow = dim(temp_adjacent_matrix)[1])
+MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
+MinimumSpanning_matrix # Here is teh minimum spanning tree in the matrix format
+```

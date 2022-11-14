@@ -17,6 +17,13 @@
             </RMarkdownRenderProfile>
           </value>
         </entry>
+        <entry key="file://$PROJECT_DIR$/hdbscan_manual/hdbscan_iris.rmd">
+          <value>
+            <RMarkdownRenderProfile>
+              <option name="outputDirectoryUrl" value="file://$PROJECT_DIR$/hdbscan_manual" />
+            </RMarkdownRenderProfile>
+          </value>
+        </entry>
         <entry key="file://$PROJECT_DIR$/kmean/kmean_iris.rmd">
           <value>
             <RMarkdownRenderProfile>

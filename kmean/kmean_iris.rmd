@@ -70,7 +70,24 @@ clusplot(iris_params[, c("sepal_length", "sepal_width")],
          labels = 2,
          plotchar = FALSE,
          span = TRUE,
-         main = paste("Cluster iris"),
+         main = paste("Cluster Iris Sepal"),
          xlab = 'sepal_length',
          ylab = 'sepal_width')
+```
+
+```{r}
+## Visualizing clusters
+y_kmeans <- kmean_model$cluster
+clusplot(iris_params[, c("petal_length", "petal_width")],
+         y_kmeans,
+         lines = 0,
+         shade = TRUE,
+         color = TRUE,
+         labels = 2,
+         plotchar = FALSE,
+         span = TRUE,
+         main = paste("Cluster Iris Petal"),
+         xlab = 'petal_length',
+         ylab = 'petal_width')
+```
 ```
