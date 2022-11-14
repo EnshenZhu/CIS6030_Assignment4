@@ -38,7 +38,7 @@ L2_dist_matrix
 ```{r}
 # caluclate the core ditance for each data point base on parameter k
 k_param <- 3 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
-core_dist <- apply(L2_dist_matrix, 1, FUN = function(x) Small(x, k = k_param + 1, unique = FALSE, na.last = NA)[k])
+core_dist <- apply(L2_dist_matrix, 1, FUN = function(x) Small(x, k = k_param + 1, unique = FALSE, na.last = NA)[k_param])
 
 core_dist[1]
 ```
