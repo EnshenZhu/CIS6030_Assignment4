@@ -1,0 +1,115 @@
+---
+title: "R Notebook"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+```{r}
+# install.packages("ClusterR")
+# install.packages("cluster")
+# install.packages("DescTools")
+# install.packages("igraph")
+# install.packages("dbscan")
+
+# Loading package
+library(ClusterR)
+library(cluster)
+library(DescTools)
+library(igraph)
+library(dbscan)
+```
+```{r}
+# import the iris data from the docker
+result <- system("docker exec namenode hdfs dfs -cat ./input/multishapes.csv", intern = TRUE)
+writeLines(result, "./kmean/temp_multishape.csv")
+multishape_data <- read.csv("./kmean/temp_multishape.csv",
+                            header = TRUE,
+                            colClasses = c("NULL", NA, NA, NA),
+                            col.names = c("idx", "x_coordinate", "y_coordinate", "shape_class"))
+```
+```{r}
+# subtract the xy_params,
+xy_params <- multishape_data[, -3]
+```
+## Part 1 - Work out the core distance, mutual reachability distance and mutual reachability distance graph
+```{r}
+# create distance matrix for each data point pairs
+L2_dist_matrix = as.matrix(dist(xy_params, method = "euclidean"))
+# L2_dist_matrix
+```
+```{r}
+# caluclate the core ditance for each data point base on parameter k
+k_param <- 3 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
+core_dist <- apply(L2_dist_matrix, 1, FUN = function(x) Small(x, k = k_param + 1, unique = FALSE, na.last = NA)[k_param])
+
+core_dist[1]
+```
+```{r}
+
+# build the mutal distance matrix
+dp_num = dim(xy_params)[1]
+mutal_dist_matrix <- matrix(, nrow = dp_num, ncol = dp_num)
+
+for (row_idx in 1:dp_num) {
+  for (col_idx in 1:dp_num) {
+    if (row_idx != col_idx) {
+      #mutal distance is the max of (L2_dist(x,y), core_dist(x),core_dist(y))
+      mutal_dist_matrix[row_idx, col_idx] <- max(L2_dist_matrix[row_idx, col_idx], core_dist[row_idx], core_dist[col_idx])
+    }
+    else {
+      mutal_dist_matrix[row_idx, col_idx] = 0
+    }
+  }
+}
+
+# mutal_dist_matrix
+```
+## Part II Build the minimum spanning tree
+```{r}
+temp_graph = mutal_dist_matrix
+# Step 1: Convert the matrix into the upper triangle matrix firstly
+temp_graph[upper.tri(temp_graph)] <- 0
+
+temp_graph_undirected <- as.undirected(graph.adjacency(temp_graph, weighted = TRUE))
+graph_MST <- mst(temp_graph_undirected)
+# graph_MST
+```
+```{r}
+# Step 2: Turn back to the triangle matrix
+temp_adjacent_matrix <- as_adjacency_matrix(graph_MST, type = "lower", attr = "weight")
+MinimumSpanning_matrix <- matrix(temp_adjacent_matrix, nrow = dim(temp_adjacent_matrix)[1])
+MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
+# MinimumSpanning_matrix # Here is teh minimum spanning tree in the matrix format
+```
+The following part are all perspective automatic
+```{r}
+hdbscan_model <- hdbscan(xy_params, minPts = 37)
+hdbscan_model
+```
+```{r}
+# # # Confusion Matrix
+# cm <- table(xy_params$shape_class, hdbscan_model$cluster)
+# cm
+
+```
+```{r}
+plot(xy_params[c("x_coordinate", "y_coordinate")], col = hdbscan_model$cluster + 1, pch = 20,
+     main = "HDBSCAN on Multishape Profile")
+```
+```{r}
+## Visualizing clusters
+y_kmeans <- hdbscan_model$cluster
+clusplot(xy_params[, c("x_coordinate", "y_coordinate")],
+         y_kmeans,
+         lines = 0,
+         pch = 20,
+         shade = TRUE,
+         color = TRUE,
+         # labels = 2,
+         plotchar = FALSE,
+         span = TRUE,
+         main = paste("Cluster Iris Sepal"),
+         xlab = 'x_coordinate',
+         ylab = 'y_coordinate')
+```
