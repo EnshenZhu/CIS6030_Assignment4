@@ -89,8 +89,8 @@ hdbscan_model
 ```
 ```{r}
 # # # Confusion Matrix
-# cm <- table(xy_params$shape_class, hdbscan_model$cluster)
-# cm
+cm <- table(multishape_data$shape_class, hdbscan_model$cluster)
+cm
 
 ```
 ```{r}
