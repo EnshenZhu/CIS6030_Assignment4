@@ -6,10 +6,12 @@ output: html_document
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 ```{r}
+# install.packages("R6")
 # install.packages("ClusterR")
 # install.packages("cluster")
 # install.packages("DescTools")
 # install.packages("igraph")
+# install.package("hclust")
 # install.packages("dbscan")
 
 # Loading package
@@ -18,6 +20,8 @@ library(cluster)
 library(DescTools)
 library(igraph)
 library(dbscan)
+# library(hclust)
+library(R6)
 ```
 ```{r}
 # import the iris data from the docker
@@ -31,13 +35,13 @@ iris_data <- read.csv("./hdbscan_manual/temp_iris.csv",
 ```{r}
 # subtract the iris_params, which only contain the sepal and petal numberical values
 iris_params <- iris_data[, -5]
-iris_params
+# iris_params
 ```
 ## Part 1 - Work out the core distance, mutual reachability distance and mutual reachability distance graph
 ```{r}
 # create distance matrix for each data point pairs
 L2_dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
-# L2_dist_matrix
+L2_dist_matrix
 ```
 ```{r}
 # caluclate the core ditance for each data point base on parameter k
@@ -64,7 +68,7 @@ for (row_idx in 1:dp_num) {
   }
 }
 
-mutal_dist_matrix
+# mutal_dist_matrix
 ```
 ## Part II Build the minimum spanning tree
 ```{r}
@@ -74,7 +78,7 @@ temp_graph[upper.tri(temp_graph)] <- 0
 
 temp_graph_undirected <- as.undirected(graph.adjacency(temp_graph, weighted = TRUE))
 graph_MST <- mst(temp_graph_undirected)
-graph_MST
+# graph_MST
 ```
 ```{r}
 # Step 2: Turn back to the triangle matrix
@@ -84,4 +88,72 @@ MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 MinimumSpanning_matrix # Here is teh minimum spanning tree in the matrix format
 ```
 ## Part III
-This part will be divided
+Step1: Preset the class of the hieratical tree
+```{r}
+print(is.numeric(1.2))
+print(is.double(2))
+print(is.numeric(2))
+
+```
+```{r}
+HieraticalTree <- R6Class("HieraticalTree",
+                          list(MutualDistanceNode_ls = NA,
+                               DataPointsNode_ls = NA)
+)
+
+# MutualDistanceNode will be the internal nodes
+MutualDistanceNode <- R6Class("MutualDistanceNode",
+                              list(distance_val = NA,
+                                   left = NA,
+                                   right = NA,
+                                   parentNode = NA
+                              ),
+                              initialize = function(distance_val = NA) {
+                                stopifnot(is.double(distance_val))
+                                stopifnot(is.numeric(left))
+                                stopifnot(is.numeric(right))
+                                # Do I need to initialize the parentNode?
+                                self$distance_val = distance_val
+                                self$left = left
+                                self$right = right
+                              }
+)
+
+# DataPointsNode will be leaf nodes
+DataPointsNode <- R6Class("DataPointsNode",
+                          list(x_coor = NA,
+                               y_coor = NA,
+                               parentNode = NA
+                          ),
+
+                          initialize = function(x_coor, y_coor = NA) {
+                            self$x_coor = x_coor
+                            self$y_coor = y_coor
+                          }
+)
+```
+Step2: Convert the MST matrix into a map between the coordinate pairs and mutual distance
+```{r}
+#RECALL dp_num should be the dimension size -> 150
+
+the_HieraticalTree <- HieraticalTree$new()
+
+for (row_idx in 1:dp_num) {
+  for (col_idx in 1:dp_num) {
+    if (MinimumSpanning_matrix[row_idx, col_idx] != 0) {
+
+      # create a new MutualDistanceNode object
+      new_MutualDistanceNode <- MutualDistanceNode$new(
+              MinimumSpanning_matrix[row_idx, col_idx],
+              row_idx,
+              col_idx)
+    }
+  }
+}
+
+```
+```{r}
+hc <- hclust(dist(MinimumSpanning_matrix), method = "complete", members = NULL)
+hc
+plot(hc, hang = -1)
+```

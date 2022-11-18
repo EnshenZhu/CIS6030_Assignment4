@@ -85,7 +85,7 @@ MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 ```
 The following part are all perspective automatic
 ```{r}
-hdbscan_model <- dbscan(iris_params, eps  = 3)
+hdbscan_model <- hdbscan(iris_params, minPts = 3)
 hdbscan_model
 ```
 ```{r}
