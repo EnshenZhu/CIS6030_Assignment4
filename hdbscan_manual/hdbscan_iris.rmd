@@ -141,7 +141,6 @@ the_HieraticalTree <- HieraticalTree$new()
 for (row_idx in 1:dp_num) {
   for (col_idx in 1:dp_num) {
     if (MinimumSpanning_matrix[row_idx, col_idx] != 0) {
-
       # create a new MutualDistanceNode object
       new_MutualDistanceNode <- MutualDistanceNode$new(
               MinimumSpanning_matrix[row_idx, col_idx],
@@ -151,6 +150,10 @@ for (row_idx in 1:dp_num) {
   }
 }
 
+```
+```{r}
+arg_core_dist_matrix = dist(MinimumSpanning_matrix)
+arg_core_dist_matrix
 ```
 ```{r}
 hc <- hclust(dist(MinimumSpanning_matrix), method = "complete", members = NULL)
