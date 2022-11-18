@@ -22,8 +22,8 @@ library(dbscan)
 ```{r}
 # import the iris data from the docker
 result <- system("docker exec namenode hdfs dfs -cat ./input/iris.csv", intern = TRUE)
-writeLines(result, "./hdbscan_manual/temp_iris.csv")
-iris_data <- read.csv("./hdbscan_manual/temp_iris.csv",
+writeLines(result, "./hdbscan_auto/temp_iris.csv")
+iris_data <- read.csv("./hdbscan_auto/temp_iris.csv",
                       header = FALSE,
                       colClasses = c(NA, NA, NA, NA, NA),
                       col.names = c("sepal_length", "sepal_width", "petal_length", "petal_width", "species"))
@@ -85,7 +85,7 @@ MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 ```
 The following part are all perspective automatic
 ```{r}
-hdbscan_model <- hdbscan(iris_params, minPts = 3)
+hdbscan_model <- dbscan(iris_params, eps  = 3)
 hdbscan_model
 ```
 ```{r}
@@ -102,9 +102,9 @@ plot(iris_params[c("petal_length", "petal_width")], col = hdbscan_model$cluster 
 ```
 ```{r}
 ## Visualizing clusters
-y_kmeans <- hdbscan_model$cluster
+y1_kmeans <- hdbscan_model$cluster
 clusplot(iris_params[, c("sepal_length", "sepal_width")],
-         y_kmeans,
+         y1_kmeans,
          lines = 0,
          pch = 20,
          shade = TRUE,
@@ -118,9 +118,9 @@ clusplot(iris_params[, c("sepal_length", "sepal_width")],
 ```
 ```{r}
 ## Visualizing clusters
-y_kmeans <- hdbscan_model$cluster
+y2_kmeans <- hdbscan_model$cluster
 clusplot(iris_params[, c("petal_length", "petal_width")],
-         y_kmeans,
+         y2_kmeans,
          lines = 0,
          pch = 20,
          shade = TRUE,

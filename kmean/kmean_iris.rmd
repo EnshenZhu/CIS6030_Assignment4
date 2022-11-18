@@ -41,10 +41,10 @@ cm
 ```
 ```{r}
 # Evaluate and visualize the model
-plot(iris_params[c("sepal_length", "sepal_width")], col = kmean_model$cluster,
+plot(iris_params[c("sepal_length", "sepal_width")], col = kmean_model$cluster, pch = 20,
      main = "K-means with 3 Clusters on Iris Sepal Profile")
 
-plot(iris_params[c("petal_length", "petal_width")], col = kmean_model$cluster,
+plot(iris_params[c("petal_length", "petal_width")], col = kmean_model$cluster, pch = 20,
      main = "K-means with 3 Clusters on Iris Petal Profile")
 ```
 ```{r}

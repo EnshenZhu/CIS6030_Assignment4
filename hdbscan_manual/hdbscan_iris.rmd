@@ -37,7 +37,7 @@ iris_params
 ```{r}
 # create distance matrix for each data point pairs
 L2_dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
-L2_dist_matrix
+# L2_dist_matrix
 ```
 ```{r}
 # caluclate the core ditance for each data point base on parameter k
@@ -83,3 +83,5 @@ MinimumSpanning_matrix <- matrix(temp_adjacent_matrix, nrow = dim(temp_adjacent_
 MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 MinimumSpanning_matrix # Here is teh minimum spanning tree in the matrix format
 ```
+## Part III
+This part will be divided

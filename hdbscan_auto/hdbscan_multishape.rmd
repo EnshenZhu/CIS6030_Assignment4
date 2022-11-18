@@ -22,8 +22,8 @@ library(dbscan)
 ```{r}
 # import the iris data from the docker
 result <- system("docker exec namenode hdfs dfs -cat ./input/multishapes.csv", intern = TRUE)
-writeLines(result, "./kmean/temp_multishape.csv")
-multishape_data <- read.csv("./kmean/temp_multishape.csv",
+writeLines(result, "./hdbscan_auto/temp_multishape.csv")
+multishape_data <- read.csv("./hdbscan_auto/temp_multishape.csv",
                             header = TRUE,
                             colClasses = c("NULL", NA, NA, NA),
                             col.names = c("idx", "x_coordinate", "y_coordinate", "shape_class"))
