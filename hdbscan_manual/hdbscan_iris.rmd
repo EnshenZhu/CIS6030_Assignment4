@@ -96,19 +96,24 @@ HieraticalTree <- R6Class("HieraticalTree",
 
 # MutualDistanceNode will be the internal nodes
 TreeNodes <- R6Class("TreeNodes",
-                     public = list(distance_val = NA,
-                                   left = NULL,
-                                   right = NULL,
-                                   parentNode = NULL,
+                     public = list(distance_val = NULL,
+                                   leftNodeIdx = NULL,
+                                   rightNodeIdx = NULL,
 
-                                   initialize = function(distance_val = NA, left = NULL, right = NULL) {
+                                   selfIdx = NULL,
+                                   parentNodeIdx = NULL,
+
+                                   initialize = function(distance_val = NULL, left = NULL, right = NULL, selfIdx = NULL, parentNodeIdx = NULL) {
                                      # stopifnot(is.double(distance_val))
                                      # stopifnot(is.numeric(left))
                                      # stopifnot(is.numeric(right))
                                      # Do I need to initialize the parentNode?
                                      self$distance_val = distance_val
-                                     self$left = left
-                                     self$right = right
+                                     self$leftNodeIdx = left
+                                     self$rightNodeIdx = right
+
+                                     self$selfIdx = selfIdx
+                                     self$parentNodeIdx = parentNodeIdx
                                    }
                      ))
 
@@ -136,7 +141,7 @@ TreeNodes <- R6Class("TreeNodes",
 the_HieraticalTree <- HieraticalTree$new()
 
 # Create a distance dataFrame to store the (distance,x_coor,y_coor) info
-N <- dp_num # pre-allocate the dp_num of rows <this might be overestimate> SHOULD BE 150 Lines
+N <- dp_num - 1 # pre-allocate the dp_num of rows <this might be overestimate> SHOULD BE 150 Lines
 dist_DF <- data.frame(core_dist = rep(NA, N), point1_idx = rep(NA, N), point2_idx = rep(NA, N), # we need three columns
                       stringsAsFactors = FALSE) # you don't know levels yet
 
@@ -157,13 +162,24 @@ dist_DF <- dist_DF[order(dist_DF$core_dist),]
 dist_DF
 
 ```
+## Step2 Generate a hashmap to store all nodes (including leaf nodes and internal nodes
+```{r}
+allNode_Map <- hashmap()
+
+for (idx in (-dp_num + 1):dp_num) {
+  idx = as.character(idx)
+  insert(allNode_Map, idx, TreeNodes$new(selfIdx = idx, parentNodeIdx = idx))
+}
+
+query(allNode_Map, "22")
+```
 MST <- (10, 1, 3), (15, 2, 3)
 POINTS: 1, 2, 3
 EDGES 10, 15
 
 step -1: sort all the mst edges
 step 0: Node$new(1), Node$new(2), Node$new(3) # create all  leaf nodes -> hashmap [idx]/list Num = N
-step 1: for n-1 eges: Node$new(10, find(1), find(3)), union(1,3)
+step 1: for n-1 edges: Node$new(10, find(1), find(3)), union(1,3)
 Node$new(15, find(2), find(3)), union(2,3) # create all internal nodes -> hashmap [-i]; exp, key = -1, min edge, key -3, 3rd smallest edge
 
               For example: find(1) -> hashmap[1] -> leafnode(1); find(3) -> hahsmap[3] -> leafnode(3)
@@ -195,19 +211,93 @@ Node$new(15, find(2), find(3)), union(2,3) # create all internal nodes -> hashma
                         ...
                         -internal_num: leaf_num, leafnum/interl_num, edge
 
-## Step2 Generate a hashmap to store all nodes (including leaf nodes and internal nodes
+## Step 3 Define the Union and Find functions
 ```{r}
-allNode_Map <- hashmap()
+FindNode <- function(x, allNode_Map) {
+  # x -> TreeNode Class
+  # allNode_Map -> hashmap
 
-for (idx in (-dp_num + 1):dp_num) {
-  idx = as.character(idx)
-  insert(allNode_Map, idx, TreeNodes$new(0, NULL, NULL))
+  if (x$parentNodeIdx == x$selfIdx) {
+    return(x$selfIdx)
+  }
+
+  parentNode <- query(allNode_Map, as.character(x$parentNodeIdx))
+  return(FindNode(parentNode, allNode_Map))
 }
 
-query(allNode_Map, "22")
+UnionNode <- function(targetIdx, x, y, allNode_Map) {
+  # targetIdx -> int
+  # x -> TreeNode Class
+  # y -> TreeNode Class
+  # allNode_Map -> hashmap
+
+  # find the x and y's parent node idx
+  x_parentNodeIdx <- FindNode(x, allNode_Map)
+  y_parentNodeIdx <- FindNode(y, allNode_Map)
+
+  # query out the target parent node
+  x_parentNode <- query(allNode_Map, as.character(x_parentNodeIdx))
+  y_parentNode <- query(allNode_Map, as.character(y_parentNodeIdx))
+
+  x_parentNode$parentNodeIdx <- targetIdx
+  y_parentNode$parentNodeIdx <- targetIdx
+}
+```
+```{r}
+tracker <- 1 # tracking the dist_DF dataFrame table
+
+for (idx in -1:(-dp_num + 1)) {
+  the_dist <- dist_DF[tracker, 1]
+  the_pointA_idx <- as.integer(dist_DF[tracker, 2])
+  the_pointB_idx <- as.integer(dist_DF[tracker, 3])
+
+  NodeObj <- query(allNode_Map, as.character(idx))
+
+  # print(the_pointA_idx[[1]])
+  # print(the_pointB_idx[[1]])
+
+  NodeObj$distance_val <- the_dist
+  NodeObj$selfIdx <- idx
+
+  # config the node object to be unioned
+  the_pointA <- query(allNode_Map, as.character(the_pointA_idx))
+  the_pointB <- query(allNode_Map, as.character(the_pointB_idx))
+
+  NodeObj$leftNodeIdx <- FindNode(the_pointA, allNode_Map)
+  NodeObj$rightNodeIdx <- FindNode(the_pointB, allNode_Map)
+
+  UnionNode(targetIdx = idx, x = the_pointA, y = the_pointB, allNode_Map = allNode_Map)
+
+  tracker <- tracker + 1
+
+}
+
+```
+```{r}
+query(allNode_Map, "-149")
+```
+```{r}
+mm <- dist(MinimumSpanning_matrix, method = "euclidean")
+mm
+```
+```{r}
+set.seed(123)
+mm <- matrix(rbinom(40, 20, 0.5), 8, 5)
+mm
+#      [,1] [,2] [,3] [,4] [,5]
+# [1,]    9   10    8   11   11
+# [2,]   12   10    6   11   12
+# [3,]    9   14    9   10    6
+# [4,]   13   10   14   11   10
+# [5,]   13   11   13    9   12
+# [6,]    6   10   11    8    8
+# [7,]   10    7   11   14    9
+# [8,]   13   13   16   13    8
+
+which(mm == max(mm), arr.ind = TRUE)
 ```
 ```{r}
 hc <- hclust(dist(MinimumSpanning_matrix), method = "complete", members = NULL)
 hc
-plot(hc, hang = -1)
+plot(hc, hang =-5)
 ```
