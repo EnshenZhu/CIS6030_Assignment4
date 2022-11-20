@@ -89,6 +89,11 @@ MinimumSpanning_matrix # Here is teh minimum spanning tree in the matrix format
 ## Part III
 ### Step0: Preset the class of the hieratical tree
 ```{r}
+HieraticalTree <- R6Class("HieraticalTree",
+                          public = list(MutualDistanceNode_ls = NA,
+                                        DataPointsNode_ls = NA)
+)
+
 # MutualDistanceNode will be the internal nodes
 TreeNodes <- R6Class("TreeNodes",
                      public = list(distance_val = NULL,
@@ -98,13 +103,11 @@ TreeNodes <- R6Class("TreeNodes",
                                    selfIdx = NULL,
                                    parentNodeIdx = NULL,
 
-                                   # The following three fields are for the Condense and Extract
-                                   isLeaf = FALSE,
-                                   hasChildren = list(),
-                                   lamdaBirth = NULL,
-
                                    initialize = function(distance_val = NULL, left = NULL, right = NULL, selfIdx = NULL, parentNodeIdx = NULL) {
-
+                                     # stopifnot(is.double(distance_val))
+                                     # stopifnot(is.numeric(left))
+                                     # stopifnot(is.numeric(right))
+                                     # Do I need to initialize the parentNode?
                                      self$distance_val = distance_val
                                      self$leftNodeIdx = left
                                      self$rightNodeIdx = right
@@ -113,10 +116,29 @@ TreeNodes <- R6Class("TreeNodes",
                                      self$parentNodeIdx = parentNodeIdx
                                    }
                      ))
+
+# DataPointsNode will be leaf nodes
+# DataPointsNode <- R6Class("DataPointsNode",
+#                           public = list(x_coor = NA,
+#                                         y_coor = NA,
+#                                         parentNode = NA,
+#
+#                                         initialize = function(x_coor, y_coor = NA) {
+#                                           self$x_coor = x_coor
+#                                           self$y_coor = y_coor
+#                                         }
+#                           ))
 ```
 ### Step1: Get all edges, their corresponded element pairs, and sort them
 ```{r}
+#fix the MST matrix
+# arg_MST_matrix = dist(MinimumSpanning_matrix)
+# arg_MST_matrix
+```
+```{r}
 #RECALL dp_num should be the dimension size -> 150
+
+the_HieraticalTree <- HieraticalTree$new()
 
 # Create a distance dataFrame to store the (distance,x_coor,y_coor) info
 N <- dp_num - 1 # pre-allocate the dp_num of rows <this might be overestimate> SHOULD BE 150 Lines
@@ -140,26 +162,67 @@ dist_DF <- dist_DF[order(dist_DF$core_dist),]
 dist_DF
 
 ```
+```{r}
+# # For test
+# dp_num <- 5
+# core_dist <- c(10, 10, 20, 30)
+# point1_idx <- c(0, 2, 0, 1)
+# point2_idx <- c(1, 3, 2, 4)
+#
+# dist_DF <- data.frame(core_dist, point1_idx, point2_idx)
+# dist_DF
+```
 ## Step2 Generate a hashmap to store all nodes (including leaf nodes and internal nodes
 ```{r}
 allNode_Map <- hashmap()
 
 for (idx in (-dp_num + 1):dp_num) {
-  idx_char = as.character(idx)
-  insert(allNode_Map, idx_char, TreeNodes$new(selfIdx = idx, parentNodeIdx = idx))
-
-  if (idx > 0) { # when looping at leaf nodes
-    temp_NodeObj <- query(allNode_Map, idx_char)
-    temp_NodeObj$isLeaf <- TRUE
-    temp_NodeObj$hasChildren <- append(temp_NodeObj$hasChildren, idx) #the the children list to be itself
-  }
+  idx = as.character(idx)
+  insert(allNode_Map, idx, TreeNodes$new(selfIdx = idx, parentNodeIdx = idx))
 }
 
-testObj <- query(allNode_Map, "10")
-testObj
+query(allNode_Map, "3")
 ```
+MST <- (10, 1, 3), (15, 2, 3)
+POINTS: 1, 2, 3
+EDGES 10, 15
+
+step -1: sort all the mst edges
+step 0: Node$new(1), Node$new(2), Node$new(3) # create all  leaf nodes -> hashmap [idx]/list Num = N
+step 1: for n-1 edges: Node$new(10, find(1), find(3)), union(1,3)
+Node$new(15, find(2), find(3)), union(2,3) # create all internal nodes -> hashmap [-i]; exp, key = -1, min edge, key -3, 3rd smallest edge
+
+              For example: find(1) -> hashmap[1] -> leafnode(1); find(3) -> hahsmap[3] -> leafnode(3)
+                           newInternalNode(-1)
+                           union(1, 3) -> 1 partent -> 3 parent -> -1 (root)
+
+                           find(2) -> hashamp[2] -> leafnode(2);
+                           find(3) -> hashmap[-1] -> internalNode(-1)
+                           antoher new InternalNode(-2)[15, hashmap[2], hashmap[-1]] # memory-costly
+                           [15, 2, -1] # memory-firendly -> 2n-1 node -> hashmap
+                           TreeNode (val, left, rigth)
+                           TreeNoder.get(left) -> left (TreeNODE)/ -> hashmap[left] / key
+
+                           union(2, 3) -> find(2) -> lfn(2), find(3) -> internal(-1) -> lfn(2) parent -> internal(-1) -> parent -> internalnode(-2)
+
+
+               Take away: 1) UF union(nu1, nu2) -> nu_root; find(nu1) -> nu_root
+                          2) hahstable (size(2n-1)), value -> empty Node()
+                          for i in -n-1:n:
+                                hashtable[i] <- EmptyNode()
+
+                           1~n, set idx 1~n, // or do nothing
+                          -1~-n-1, loop via *sorted* edge: union-find -> set left, right, value = edge
+                          ================
+                          You already got the tree here at hashamp[n-1]
+
+                        1: 1, 3, 15
+                        2: 2, -1, 10
+                        ...
+                        -internal_num: leaf_num, leafnum/interl_num, edge
+
 ## Step 3 Define the Union and Find functions
-A. The following is the O(n) Find and O(1) Union
+The following is the O(n) Find and O(1) Union
 ```{r}
 FindNode <- function(x, allNode_Map) {
   # x -> TreeNode Class
@@ -182,7 +245,6 @@ UnionNode <- function(targetIdx, x, y) {
   y$parentNodeIdx <- targetIdx
 }
 ```
-B. Iterate the dist_DF table to build the tree
 ```{r}
 tracker <- 1 # tracking the dist_DF dataFrame table
 
@@ -216,7 +278,14 @@ for (idx in -1:(-dp_num + 1)) {
 
 ```
 ```{r}
-query(allNode_Map, "-148")
 query(allNode_Map, "-149")
-query(allNode_Map, "13")
+```
+```{r}
+mm <- dist(MinimumSpanning_matrix, method = "euclidean")
+mm
+```
+```{r}
+hc <- hclust(dist(MinimumSpanning_matrix), method = "complete", members = NULL)
+hc
+plot(hc, hang = -5)
 ```

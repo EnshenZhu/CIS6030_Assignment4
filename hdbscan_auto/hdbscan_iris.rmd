@@ -132,3 +132,6 @@ clusplot(iris_params[, c("petal_length", "petal_width")],
          xlab = 'petal_length',
          ylab = 'petal_width')
 ```
+```{r}
+plot(hdbscan_model$hc, main = "HDBSCAN* Hierarchy for Iris")
+```
