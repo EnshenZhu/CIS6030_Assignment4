@@ -113,3 +113,6 @@ clusplot(xy_params[, c("x_coordinate", "y_coordinate")],
          xlab = 'x_coordinate',
          ylab = 'y_coordinate')
 ```
+```{r}
+plot(hdbscan_model$hc, main = "HDBSCAN* Hierarchy for multishape")
+```

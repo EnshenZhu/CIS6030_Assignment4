@@ -4,6 +4,11 @@ output: html_document
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
+# unload all residual packages
+# invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)),   # Unload add-on packages
+#                  detach,
+#                  character.only = TRUE, unload = TRUE))
 ```
 ```{r}
 # install.packages("R6")
@@ -13,6 +18,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # install.packages("igraph")
 # install.packages("dbscan")
 # install.packages("r2r")
+# install.packages("datastructures")
 
 # Loading package
 library(ClusterR)
@@ -21,6 +27,11 @@ library(DescTools)
 library(igraph)
 library(R6)
 library(r2r)
+```
+k_param and MCS need be to declared manually, we declare them at very top
+```{r}
+k_param <- 3 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
+MCS <- 5 # minimum cluster size
 ```
 ```{r}
 # import the iris data from the docker
@@ -34,9 +45,11 @@ iris_data <- read.csv("./hdbscan_manual/temp_iris.csv",
 ```{r}
 # subtract the iris_params, which only contain the sepal and petal numberical values
 iris_params <- iris_data[, -5]
-# iris_params
+iris_params
 ```
+
 ## Part 1 - Work out the core distance, mutual reachability distance and mutual reachability distance graph
+
 ```{r}
 # create distance matrix for each data point pairs
 L2_dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
@@ -44,7 +57,6 @@ L2_dist_matrix
 ```
 ```{r}
 # caluclate the core ditance for each data point base on parameter k
-k_param <- 3 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
 core_dist <- apply(L2_dist_matrix, 1, FUN = function(x) Small(x, k = k_param + 1, unique = FALSE, na.last = NA)[k_param])
 
 core_dist[1]
@@ -69,7 +81,9 @@ for (row_idx in 1:dp_num) {
 
 # mutal_dist_matrix
 ```
+
 ## Part II Build the minimum spanning tree
+
 ```{r}
 temp_graph = mutal_dist_matrix
 # Step 1: Convert the matrix into the upper triangle matrix firstly
@@ -86,8 +100,10 @@ MinimumSpanning_matrix <- matrix(temp_adjacent_matrix, nrow = dim(temp_adjacent_
 MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 MinimumSpanning_matrix # Here is teh minimum spanning tree in the matrix format
 ```
+
 ## Part III
 ### Step0: Preset the class of the hieratical tree
+
 ```{r}
 # MutualDistanceNode will be the internal nodes
 TreeNodes <- R6Class("TreeNodes",
@@ -98,10 +114,14 @@ TreeNodes <- R6Class("TreeNodes",
                                    selfIdx = NULL,
                                    parentNodeIdx = NULL,
 
-                                   # The following three fields are for the Condense and Extract
-                                   isLeaf = FALSE,
+                                   # The following fields are for the Condense and Extract
                                    hasChildren = list(),
                                    lamdaBirth = NULL,
+
+                                   potentialNoise = FALSE,
+                                   lamda_birth = NULL,
+                                   lamda_death = NULL,
+                                   stability = NULL,
 
                                    initialize = function(distance_val = NULL, left = NULL, right = NULL, selfIdx = NULL, parentNodeIdx = NULL) {
 
@@ -114,7 +134,9 @@ TreeNodes <- R6Class("TreeNodes",
                                    }
                      ))
 ```
+
 ### Step1: Get all edges, their corresponded element pairs, and sort them
+
 ```{r}
 #RECALL dp_num should be the dimension size -> 150
 
@@ -150,16 +172,19 @@ for (idx in (-dp_num + 1):dp_num) {
 
   if (idx > 0) { # when looping at leaf nodes
     temp_NodeObj <- query(allNode_Map, idx_char)
-    temp_NodeObj$isLeaf <- TRUE
-    temp_NodeObj$hasChildren <- append(temp_NodeObj$hasChildren, idx) #the the children list to be itself
+    temp_NodeObj$hasChildren <- append(temp_NodeObj$hasChildren, idx) # the children list to be itself
+    temp_NodeObj$stability <- 0 # leaf node's stability should be 0
   }
 }
 
 testObj <- query(allNode_Map, "10")
 testObj
 ```
+
 ## Step 3 Define the Union and Find functions
+
 A. The following is the O(n) Find and O(1) Union
+
 ```{r}
 FindNode <- function(x, allNode_Map) {
   # x -> TreeNode Class
@@ -173,16 +198,22 @@ FindNode <- function(x, allNode_Map) {
   return(FindNode(parentNode, allNode_Map))
 }
 
-UnionNode <- function(targetIdx, x, y) {
+UnionNode <- function(targetIdx, x, y, allNode_Map) {
   # targetIdx -> int
   # x -> TreeNode Class
   # y -> TreeNode Class
 
   x$parentNodeIdx <- targetIdx
   y$parentNodeIdx <- targetIdx
+
+  #store all corresponded leaf nodes from two children nodes
+  tempObj <- query(allNode_Map, as.character(targetIdx))
+  tempObj$hasChildren <- c(tempObj$hasChildren, x$hasChildren, y$hasChildren)
 }
 ```
+
 B. Iterate the dist_DF table to build the tree
+
 ```{r}
 tracker <- 1 # tracking the dist_DF dataFrame table
 
@@ -208,7 +239,7 @@ for (idx in -1:(-dp_num + 1)) {
   leftNode <- query(allNode_Map, as.character(NodeObj$leftNodeIdx))
   rightNode <- query(allNode_Map, as.character(NodeObj$rightNodeIdx))
 
-  UnionNode(targetIdx = idx, x = leftNode, y = rightNode)
+  UnionNode(targetIdx = idx, x = leftNode, y = rightNode, allNode_Map = allNode_Map)
 
   tracker <- tracker + 1
 
@@ -216,7 +247,55 @@ for (idx in -1:(-dp_num + 1)) {
 
 ```
 ```{r}
-query(allNode_Map, "-148")
-query(allNode_Map, "-149")
-query(allNode_Map, "13")
+# query(allNode_Map, "-148")
+length(query(allNode_Map, "-148")$hasChildren)
+# query(allNode_Map, "13")
+```
+## Step4 Do condense
+
+Before start - when doing the Union Find, store all the corresponded Leaf Nodes and put them into the hasChildren list
+
+A. Do the Level Order Traversal of the internal nodes of Hieratical Tree 进行层序遍历
+Recall that the idx range of internal nodes are from -dp_num+1 to -1
+```{r}
+# datastructures seem to have conflict with the previous query method,
+# so we import the library here rather than at top
+library(datastructures)
+```
+```{r}
+query(allNode_Map, "2")
+```
+```{r}
+q <- queue() # for doing DFS (Level Order Traversal)
+
+temp_NodeObj <- query(allNode_Map, as.character(-dp_num + 1))
+q <- insert(q, temp_NodeObj)
+
+while (size(q) > 0) {
+  first_NodeObj <- peek(q) # get the first element of the queue
+
+  if (first_NodeObj$selfIdx < 0) { # we are only going to process internal nodes (idx<0)
+    # mark it as the potentialNoise if its nums of children is smaller than MCS
+    if (length(first_NodeObj$hasChildren) < MCS) {
+      first_NodeObj$potentialNoise <- TRUE
+      print(first_NodeObj$selfIdx)
+    }
+
+    first_NodeObj$lamda_birth <- (1 / first_NodeObj$distance_val) # record the lamda_birth
+
+    next_leftNodeIdx <- first_NodeObj$leftNodeIdx
+    next_leftNode <- query(allNode_Map, as.character(next_leftNodeIdx))
+    q <- insert(q, next_leftNode)
+
+    next_rightNodeIdx <- first_NodeObj$rightNodeIdx
+    next_rightNode <- query(allNode_Map, as.character(next_rightNodeIdx))
+    q <- insert(q, next_rightNode)
+  }
+
+  pop(q)
+}
+
+```
+```{r}
+query(allNode_Map, "10")
 ```
