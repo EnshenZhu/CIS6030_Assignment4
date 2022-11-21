@@ -84,7 +84,8 @@ MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 ```
 The following part are all perspective automatic
 ```{r}
-hdbscan_model <- hdbscan(xy_params, minPts = 37)
+hdbscan_model <- hdbscan(xy_params, minPts = 40)
+# hdbscan_model <- dbscan(xy_params, eps = 0.14)
 hdbscan_model
 ```
 ```{r}
@@ -114,5 +115,5 @@ clusplot(xy_params[, c("x_coordinate", "y_coordinate")],
          ylab = 'y_coordinate')
 ```
 ```{r}
-plot(hdbscan_model$hc, main = "HDBSCAN* Hierarchy for multishape")
+# plot(hdbscan_model$hc, main = "HDBSCAN* Hierarchy for multishape")
 ```
