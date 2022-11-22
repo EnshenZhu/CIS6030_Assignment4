@@ -41,16 +41,16 @@ cm
 ```
 ```{r}
 # Evaluate and visualize the model
-plot(xy_params[c("x_coordinate", "y_coordinate")], col = kmean_model$cluster, main = "K-means with 6 clusters")
+plot(xy_params[c("x_coordinate", "y_coordinate")], col = kmean_model$cluster, pch = 20, main = "K-means with 6 clusters")
 ```
 ```{r}
 ## Plotiing cluster centers
 kmean_model$centers[, c("x_coordinate", "y_coordinate")]
 ```
 ```{r}
-# cex is font size, pch is symbol
-points(kmean_model$centers[, c("x_coordinate", "y_coordinate")],
-       col = 1:3, pch = 8, cex = 5)
+# # cex is font size, pch is symbol
+# points(kmean_model$centers[, c("x_coordinate", "y_coordinate")],
+#        col = 1:3, pch = 8, cex = 5)
 ```
 ```{r}
 ## Visualizing clusters

@@ -121,7 +121,7 @@ TreeNodes <- R6Class("TreeNodes",
                                    globalNoise = FALSE,
                                    lamda_birth = NULL,
                                    lamda_death = NULL,
-                                   stability = NULL,
+                                   stability = numeric(),
                                    clusterBelongIdx = NULL,
 
                                    initialize = function(distance_val = NULL, left = NULL, right = NULL, selfIdx = NULL, parentNodeIdx = NULL) {
@@ -178,7 +178,7 @@ for (idx in (-dp_num + 1):dp_num) {
   }
 }
 
-testObj <- query(allNode_Map, "10")
+testObj <- query(allNode_Map, "1")
 testObj
 ```
 
@@ -279,14 +279,16 @@ q <- insert(q, temp_NodeObj)
 while (size(q) > 0) {
   first_NodeObj <- peek(q) # get the first element of the queue
 
+  first_NodeObj$lamda_birth = 0 # 有问题
+
   if (first_NodeObj$selfIdx < 0) { # we are only going to process internal nodes (idx<0)
     # mark it as the potentialNoise if its nums of children is smaller than MCS
     if (length(first_NodeObj$hasChildren) < MCS) {
       first_NodeObj$potentialNoise <- TRUE
-      print(first_NodeObj$selfIdx)
+      # print(first_NodeObj$selfIdx)
     }
 
-    first_NodeObj$lamda_birth <- (1 / first_NodeObj$distance_val) # record the lamda_birth
+    first_NodeObj$lamda_birth <- (1 / first_NodeObj$distance_val) # record the lamda_birth # 有问题
 
     next_leftNodeIdx <- first_NodeObj$leftNodeIdx
     next_leftNode <- query(allNode_Map, as.character(next_leftNodeIdx))
@@ -302,7 +304,7 @@ while (size(q) > 0) {
 
 ```
 ```{r}
-query(allNode_Map, "-22")
+query(allNode_Map, "2")
 ```
 ## Step 5 Do Extract
 ### A. Create a nodeExtractWork function
@@ -310,15 +312,20 @@ query(allNode_Map, "-22")
 * For internal node, if it is not potential outlier -> Lambda_death = (num_children )* (left_child_lambda_brith);
 * else Lambda_death = left_child_death + right_child_death
 ```{r}
-nodeExtractWork <- function(the_Node, allNode_Map) {
+nodeExtractWork <- function(the_Node_idx, allNode_Map) {
+
+  the_Node <- query(allNode_Map, as.character(the_Node_idx))
 
   # visit the left and right node
-  the_leftNode <- query(allNode_Map, as.character(root$leftNodeIdx))
-  the_rightNode <- query(allNode_Map, as.character(root$rightNodeIdx))
+  the_leftNode <- query(allNode_Map, as.character(the_Node$leftNodeIdx))
+  the_rightNode <- query(allNode_Map, as.character(the_Node$rightNodeIdx))
+
+  # print(the_leftNode$stability)
+  # print(the_rightNode$stability)
 
   # section 1 Calculate Node lambda_death for each internal node
-  if (the_Node$selfIdx >= 0) { # if the node is a leaf node
-    the_Node$lamda_death = the_Node$lamda_birth #
+  if (the_Node$selfIdx > 0) { # if the node is a leaf node
+    the_Node$lamda_death = the_Node$lamda_birth
   }
   else { # if the node is an internal node
 
@@ -333,85 +340,60 @@ nodeExtractWork <- function(the_Node, allNode_Map) {
     }
   }
 
-  # section 2 Calculate Node Stability
-  the_Node$stability <- the_Node$lamda_death - length(the_Node$hasChildren) * the_Node$lamda_birth
-
-  # # section 3 Extract and find global noise
-  if (the_Node$stability >= (the_leftNode$stability + the_rightNode$stability)) {
-
-    # if merge is more stable, we mark the two children into the same cluster idx
-    the_leftNode$clusterBelongIdx <- the_Node$selfIdx
-    the_rightNode$clusterBelongIdx <- the_Node$selfIdx
+  # section 2 Calculate Internal Node Stability
+  if (the_Node$selfIdx < 0) {
+    the_Node$stability <- the_Node$lamda_death - length(the_Node$hasChildren) * the_Node$lamda_birth
   }
-  # else{
-  #   # if split is more stable, we mark the two children into the same cluster idx
-  # }
-}
-```
-```{r}
-# # The followed post-order traversal is derived from https://zhuanlan.zhihu.com/p/80578741
-#
-# posOrderRecur <- function(root, allNode_Map) {
-#   theCache <- list()
-#
-#   s <- stack()
-#   cur <- root
-#   pre <- NULL # 记录上一次访问的节点
-#
-#   while (!is.null(cur) | length(s) != 0) {
-#     while (!is.null(cur)) {
-#       s <- insert(s, cur)
-#       the_leftNode <- query(allNode_Map, as.character(cur$leftNodeIdx))
-#       cur <- the_leftNode
-#     }
-#
-#     if (length(s) != 0) {
-#       cur <- peek(s)
-#       pop(s) # recall that pop is an anonimous functrion in datastructure library
-#
-#       the_rightNode <- query(allNode_Map, as.character(cur$rightNodeIdx))
-#
-#       if (is.null(the_rightNode) | pre$selfIdx == the_rightNode$selfIdx) { # 访问节点的条件
-#         # theCache <- append(theCache, cur) # 访问节点
-#         print(cur$selfIdx)
-#         pre <- cur # 这一步是记录上一次访问的节点
-#         cur <- NULL # 此处为了跳过下一次循环的访问左子节点的过程，直接进入栈的弹出阶段，因为但凡在栈中的节点，它们的左子节点都肯定被经过且已放入栈中。
-#       }
-#       else { #不访问节点的条件
-#         s <- insert(s, cur)
-#         cur <- the_rightNode
-#       }
-#     }
-#   }
-#
-#   # return(theCache)
-#
-# }
-```
-```{r}
-# node1 <- TreeNodes$new(selfIdx = 1, left = 2, right = 3)
-# node2 <- TreeNodes$new(selfIdx = 2, left = NULL, right = NULL)
-# node3 <- TreeNodes$new(selfIdx = 3, left = NULL, right = NULL)
-#
-# tempMap <- hashmap()
-# insert(tempMap, "1", node1)
-# insert(tempMap, "2", node2)
-# insert(tempMap, "3", node3)
-#
-# posOrderRecur(node1, tempMap)
 
+  print(length(the_Node$hasChildren))
+  print(the_Node$lamda_death)
+
+  # section 3 Extract and find global noise
+  if (the_Node$selfIdx > 0) { # for leaf nodes, their stability will always be 0
+    the_Node$stability = 0
+  }
+  else { # for internal nodes
+    if (the_Node$stability >= the_leftNode$stability + the_rightNode$stability) {
+
+      the_Node$stability = the_Node$stability
+
+      # if merge is more stable, we mark the two children into the same cluster idx
+      the_leftNode$clusterBelongIdx <- the_Node$selfIdx
+      the_rightNode$clusterBelongIdx <- the_Node$selfIdx
+    }
+    else {
+      # if split is more stable, the child node will be marked as the global noise as long as it is previously labelled as the potential outlier
+
+      the_Node$stability = the_leftNode$stability + the_rightNode$stability
+
+      # handle left child
+      if (the_leftNode$potentialNoise == TRUE) {
+        the_leftNode$clusterBelongIdx <- 0
+        the_leftNode$globalNoise <- TRUE
+      }
+      else {
+        the_leftNode$clusterBelongIdx <- the_leftNode$selfIdx
+      }
+
+      # handle right child
+      if (the_rightNode$potentialNoise == TRUE) {
+        the_rightNode$clusterBelongIdx <- 0
+        the_rightNode$globalNoise <- TRUE
+      }
+      else {
+        the_rightNode$clusterBelongIdx <- the_rightNode$selfIdx
+      }
+    }
+  }
+}
 ```
 ### B. Create A postorder traversal function (we use recursive design in this case)
 ```{r}
 # In recursion
-
-theCache <- list()
-
 posOrderRecur <- function(root, allNode_Map, cache) {
 
   # root -> TreeNode
   if (!is.null(root)) {
-
 
     # visit the left node
     the_leftNode <- query(allNode_Map, as.character(root$leftNodeIdx))
@@ -421,19 +403,30 @@ posOrderRecur <- function(root, allNode_Map, cache) {
     the_rightNode <- query(allNode_Map, as.character(root$rightNodeIdx))
     cache <- posOrderRecur(the_rightNode, allNode_Map, cache)
 
-    cache <- append(cache, root)
-    return(cache)
+    # print(root$selfIdx)
+    print(root$selfIdx)
+    cache <- append(cache, root$selfIdx)
   }
+
+  return(cache)
 
 }
 
 ```
 ```{r}
-start_root <- query(allNode_Map, as.character(-dp_num + 1))
+theCache <- list()
+start_root <- query(allNode_Map, as.character(-1))
 theCache <- posOrderRecur(start_root, allNode_Map, theCache)
-theCache
+# posOrderRecur2(start_root, allNode_Map)
+# length(theCache)
+```
+Now we are going to execute the node extraction
+```{r}
+for (idx in theCache) {
+  nodeExtractWork(idx, allNode_Map)
+}
 ```
 ```{r}
-obj <- query(allNode_Map, as.character(1))
-obj
+query(allNode_Map, "1")$lamda_death
+isTRUE(query(allNode_Map, "-1")$stability)
 ```

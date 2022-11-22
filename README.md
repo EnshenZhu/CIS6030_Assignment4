@@ -83,6 +83,23 @@ You should correctly view up the version of Docker Desktop on your machine.
 
 ### Results
 
+#### I. K-Mean Clustering
+
+##### A. Iris
+
+1. The script is inside the kmean folder and named as the *kmean_iris.rmd*
+2. Since there are three different types of Iris flowers inside the dataset, we are going to manually set the k_value
+   for 3 to facilitate the clustering.
+3. The confusion matrix is shown as followed:
+
+   ![img.png](image_assets/iris_kmean_cm.png)
+
+4. The visualized cluster results for both sepal profile and petal profile are shown as followed:
+
+   ![](image_assets/iris_kmean_sepal.png)
+
+   ![](image_assets/iris_kmean_petal.png)
+
 ### When Finished
 
 1. Leave the namenode bash by entering ```exit```

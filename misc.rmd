@@ -1,0 +1,77 @@
+```{r}
+# # The followed post-order traversal is derived from https://zhuanlan.zhihu.com/p/80578741
+#
+# posOrderRecur <- function(root, allNode_Map) {
+#   theCache <- list()
+#
+#   s <- stack()
+#   cur <- root
+#   pre <- NULL # 记录上一次访问的节点
+#
+#   while (!is.null(cur) | length(s) != 0) {
+#     while (!is.null(cur)) {
+#       s <- insert(s, cur)
+#       the_leftNode <- query(allNode_Map, as.character(cur$leftNodeIdx))
+#       cur <- the_leftNode
+#     }
+#
+#     if (length(s) != 0) {
+#       cur <- peek(s)
+#       pop(s) # recall that pop is an anonimous functrion in datastructure library
+#
+#       the_rightNode <- query(allNode_Map, as.character(cur$rightNodeIdx))
+#
+#       if (is.null(the_rightNode) | pre$selfIdx == the_rightNode$selfIdx) { # 访问节点的条件
+#         # theCache <- append(theCache, cur) # 访问节点
+#         print(cur$selfIdx)
+#         pre <- cur # 这一步是记录上一次访问的节点
+#         cur <- NULL # 此处为了跳过下一次循环的访问左子节点的过程，直接进入栈的弹出阶段，因为但凡在栈中的节点，它们的左子节点都肯定被经过且已放入栈中。
+#       }
+#       else { #不访问节点的条件
+#         s <- insert(s, cur)
+#         cur <- the_rightNode
+#       }
+#     }
+#   }
+#
+#   # return(theCache)
+#
+# }
+```
+```{r}
+# node1 <- TreeNodes$new(selfIdx = 1, left = 2, right = 3)
+# node2 <- TreeNodes$new(selfIdx = 2, left = NULL, right = NULL)
+# node3 <- TreeNodes$new(selfIdx = 3, left = NULL, right = NULL)
+#
+# tempMap <- hashmap()
+# insert(tempMap, "1", node1)
+# insert(tempMap, "2", node2)
+# insert(tempMap, "3", node3)
+#
+# posOrderRecur(node1, tempMap)
+
+```
+```{r}
+posOrderRecur2 <- function(root, allNode_Map) {
+
+  # root -> TreeNode
+  if (!is.null(root)) {
+
+    # visit the left node
+    the_leftNode <- query(allNode_Map, as.character(root$leftNodeIdx))
+    posOrderRecur2(the_leftNode, allNode_Map)
+
+    # visit thposOrderRecure right node
+    the_rightNode <- query(allNode_Map, as.character(root$rightNodeIdx))
+    posOrderRecur2(the_rightNode, allNode_Map)
+
+    print(root$selfIdx)
+
+  }
+
+}
+```
+```{r}
+start_root <- query(allNode_Map, as.character(-dp_num + 1))
+posOrderRecur2(start_root, allNode_Map)
+```
