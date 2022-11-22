@@ -75,3 +75,42 @@ kmeans.re$centers[, c("Sepal.Length", "Sepal.Width")]
 points(kmeans.re$centers[, c("Sepal.Length", "Sepal.Width")],
        col = 1:3, pch = 8, cex = 3)
 ```
+```{r}
+# q <- queue() # for doing DFS (Level Order Traversal)
+#
+# temp_NodeObj <- query(allNode_Map, as.character(-dp_num + 1))
+# q <- insert(q, temp_NodeObj)
+#
+# while (size(q) > 0) {
+#   first_NodeObj <- peek(q) # get the first element of the queue
+#
+#   # set the value of lamda_birth for all nodes
+#   if (first_NodeObj$selfIdx == (-dp_num + 1)) {
+#     first_NodeObj$lamda_birth <- (1 / first_NodeObj$distance_val)
+#   }
+#   else {
+#     temp_parentNode <- query(allNode_Map, as.character(first_NodeObj$parentNodeIdx))
+#     first_NodeObj$lamda_birth <- (1 / temp_parentNode$distance_val)
+#   }
+#   # 有问题
+#
+#   if (first_NodeObj$selfIdx < 0) { # we are only going to process internal nodes (idx<0)
+#     # mark it as the potentialNoise if its nums of children is smaller than MCS
+#     if (length(first_NodeObj$hasChildren) < MCS) {
+#       first_NodeObj$potentialNoise <- TRUE
+#       # print(first_NodeObj$selfIdx)
+#     }
+#
+#     next_leftNodeIdx <- first_NodeObj$leftNodeIdx
+#     next_leftNode <- query(allNode_Map, as.character(next_leftNodeIdx))
+#     q <- insert(q, next_leftNode)
+#
+#     next_rightNodeIdx <- first_NodeObj$rightNodeIdx
+#     next_rightNode <- query(allNode_Map, as.character(next_rightNodeIdx))
+#     q <- insert(q, next_rightNode)
+#   }
+#
+#   pop(q)
+# }
+
+```

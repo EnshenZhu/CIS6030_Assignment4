@@ -7,9 +7,9 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 library(ClusterR)
 # unload all residual packages
-invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)),   # Unload add-on packages
-                 detach,
-                 character.only = TRUE, unload = TRUE))
+# invisible(lapply(paste0("package:", names(sessionInfo()$otherPkgs)),   # Unload add-on packages
+#                  detach,
+#                  character.only = TRUE, unload = TRUE))
 ```
 ```{r}
 # install.packages("R6")
@@ -267,49 +267,10 @@ C. When doing the traversal, we also need to calculate the corresponded lamda (=
 ```{r}
 # datastructures seem to have conflict with the previous query method,
 # so we import the library here rather than at top
-library(datastructures)
+# library(datastructures)
 ```
 ```{r}
 query(allNode_Map, "2")
-```
-```{r}
-# q <- queue() # for doing DFS (Level Order Traversal)
-#
-# temp_NodeObj <- query(allNode_Map, as.character(-dp_num + 1))
-# q <- insert(q, temp_NodeObj)
-#
-# while (size(q) > 0) {
-#   first_NodeObj <- peek(q) # get the first element of the queue
-#
-#   # set the value of lamda_birth for all nodes
-#   if (first_NodeObj$selfIdx == (-dp_num + 1)) {
-#     first_NodeObj$lamda_birth <- (1 / first_NodeObj$distance_val)
-#   }
-#   else {
-#     temp_parentNode <- query(allNode_Map, as.character(first_NodeObj$parentNodeIdx))
-#     first_NodeObj$lamda_birth <- (1 / temp_parentNode$distance_val)
-#   }
-#   # 有问题
-#
-#   if (first_NodeObj$selfIdx < 0) { # we are only going to process internal nodes (idx<0)
-#     # mark it as the potentialNoise if its nums of children is smaller than MCS
-#     if (length(first_NodeObj$hasChildren) < MCS) {
-#       first_NodeObj$potentialNoise <- TRUE
-#       # print(first_NodeObj$selfIdx)
-#     }
-#
-#     next_leftNodeIdx <- first_NodeObj$leftNodeIdx
-#     next_leftNode <- query(allNode_Map, as.character(next_leftNodeIdx))
-#     q <- insert(q, next_leftNode)
-#
-#     next_rightNodeIdx <- first_NodeObj$rightNodeIdx
-#     next_rightNode <- query(allNode_Map, as.character(next_rightNodeIdx))
-#     q <- insert(q, next_rightNode)
-#   }
-#
-#   pop(q)
-# }
-
 ```
 
 ```{r}
@@ -476,35 +437,48 @@ for (idx in theCache) {
 }
 ```
 ```{r}
-# query(allNode_Map, "1")
-# query(allNode_Map, "18")
-# query(allNode_Map, "-2")
-# length(query(allNode_Map, "-1")$hasChildren)
-# query(allNode_Map, "40")
-nodeExtractWork(-1, allNode_Map)
+query(allNode_Map, "120")
+```
+Finish on the HDBSCAN algorithm
 
-```
+### re-deploy the cluster index
 ```{r}
-for (idx in query(allNode_Map, "-110")$hasChildren) {
-  print(idx)
-}
-```
-```{r}
-clusterSet <- hashset()
+cluster_map <- hashmap()
+new_cluster_belongList <- list()
+counter <- 2
 for (idx in 1:dp_num) {
   temp_NodeObj <- query(allNode_Map, as.character(idx))
   a_clusterIdx <- temp_NodeObj$clusterBelongIdx
-  if (clusterSet[[a_clusterIdx]] == FALSE) {
-    clusterSet[[a_clusterIdx]] <- TRUE
+
+  # add the key-value pair if it is not in the hashmap
+  if (isFALSE(has_key(cluster_map, as.character(a_clusterIdx)))) {
+    insert(cluster_map, as.character(a_clusterIdx), counter)
+    counter <- counter + 1
   }
+
+  new_cluster_belong <- query(cluster_map, as.character(a_clusterIdx))
+  new_cluster_belongList <- append(new_cluster_belongList, new_cluster_belong)
 }
 
-length(clusterSet)
+# new_cluster_belongList
 ```
 ```{r}
-# temp <- hashset(0, 1, 2, 3)
-#
-# temp[[4]] <- TRUE
-#
-# temp[[4]]
+query(cluster_map, "-148") # 143 or 148
+```
+```{r}
+# make the list into a cluster
+new_cluster_belongList_df <- t(data.frame(new_cluster_belongList))
+mycluster <- c()
+for (a in new_cluster_belongList) {
+  mycluster <- c(mycluster, a)
+}
+
+# print(mycluster)
+
+```
+```{r}
+plot(iris_params[c("sepal_length", "sepal_width")],
+     col = mycluster,
+     pch = 20
+)
 ```

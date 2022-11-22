@@ -27,7 +27,7 @@ iris_params <- iris_data[, -5]
 # fit into k-mean clustering
 set.seed(100) # set the seed
 kmean_model <- kmeans(iris_params, centers = 3, nstart = 20) # set the nums of certoids as 3 and iterate 20 times
-# kmean_model
+kmean_model$cluster
 ```
 ```{r}
 # Cluster identification for each observation
