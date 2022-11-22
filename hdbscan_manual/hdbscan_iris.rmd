@@ -31,8 +31,8 @@ library(r2r)
 ```
 k_param and MCS need be to declared manually, we declare them at very top
 ```{r}
-k_param <- 3 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
-MCS <- 3 # minimum cluster size
+k_param <- 5 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
+MCS <- 5  # minimum cluster size
 ```
 ```{r}
 # import the iris data from the docker
@@ -398,8 +398,9 @@ nodeExtractWork <- function(the_Node_idx, allNode_Map) {
   else { # for internal nodes
     if (the_Node$stability > the_leftNode$stability + the_rightNode$stability) {
       # if merge is more stable, we mark all children into the current node selfIdx
-      for (childIdx in the_Node$hashChildren) {
-        print(query(allNode_Map, as.character(childIdx)))
+      for (childIdx in the_Node$hasChildren) {
+        temp_childNode <- query(allNode_Map, as.character(childIdx))
+
         # print(temp_childNode$selfIdx)
         temp_childNode$clusterBelongIdx <- the_Node$selfIdx
       }
@@ -416,7 +417,7 @@ nodeExtractWork <- function(the_Node_idx, allNode_Map) {
       if (the_leftNode$potentialNoise == TRUE) {
         the_leftNode$globalNoise <- TRUE
 
-        for (childIdx in the_leftNode$hashChildren) {
+        for (childIdx in the_leftNode$hasChildren) {
           temp_childNode = query(allNode_Map, as.character(childIdx))
           temp_childNode$clusterBelongIdx <- 0
         }
@@ -426,7 +427,7 @@ nodeExtractWork <- function(the_Node_idx, allNode_Map) {
       if (the_rightNode$potentialNoise == TRUE) {
         the_rightNode$globalNoise <- TRUE
 
-        for (childIdx in the_rightNode$hashChildren) {
+        for (childIdx in the_rightNode$hasChildren) {
           temp_childNode = query(allNode_Map, as.character(childIdx))
           temp_childNode$clusterBelongIdx <- 0
         }
@@ -464,7 +465,7 @@ posOrderRecur <- function(root, allNode_Map, cache) {
 ```
 ```{r}
 theCache <- list()
-start_root <- query(allNode_Map, as.character(-1))
+start_root <- query(allNode_Map, as.character(-dp_num + 1))
 theCache <- posOrderRecur(start_root, allNode_Map, theCache)
 length(theCache)
 ```
@@ -484,7 +485,7 @@ nodeExtractWork(-1, allNode_Map)
 
 ```
 ```{r}
-for (idx in query(allNode_Map, "-1")$hasChildren) {
+for (idx in query(allNode_Map, "-110")$hasChildren) {
   print(idx)
 }
 ```
