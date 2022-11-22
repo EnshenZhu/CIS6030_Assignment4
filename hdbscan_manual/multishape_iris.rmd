@@ -36,24 +36,24 @@ MCS <- 3 # minimum cluster size
 ```
 ```{r}
 # import the iris data from the docker
-result <- system("docker exec namenode hdfs dfs -cat ./input/iris.csv", intern = TRUE)
-writeLines(result, "./hdbscan_manual/temp_iris.csv")
-iris_data <- read.csv("./hdbscan_manual/temp_iris.csv",
-                      header = FALSE,
-                      colClasses = c(NA, NA, NA, NA, NA),
-                      col.names = c("sepal_length", "sepal_width", "petal_length", "petal_width", "species"))
+result <- system("docker exec namenode hdfs dfs -cat ./input/multishapes.csv", intern = TRUE)
+writeLines(result, "./hdbscan_manual/temp_multishapes.csv")
+multishape_data <- read.csv("./hdbscan_manual/temp_multishapes.csv",
+                            header = TRUE,
+                            colClasses = c("NULL", NA, NA, NA),
+                            col.names = c("idx", "x_coordinate", "y_coordinate", "shape_class"))
 ```
 ```{r}
 # subtract the iris_params, which only contain the sepal and petal numberical values
-iris_params <- iris_data[, -5]
-iris_params
+xy_params <- multishape_data[, -3]
+xy_params
 ```
 
 ## Part 1 - Work out the core distance, mutual reachability distance and mutual reachability distance graph
 
 ```{r}
 # create distance matrix for each data point pairs
-L2_dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
+L2_dist_matrix = as.matrix(dist(xy_params, method = "euclidean"))
 L2_dist_matrix
 ```
 ```{r}
@@ -65,7 +65,7 @@ core_dist[1]
 ```{r}
 
 # build the mutal distance matrix
-dp_num = dim(iris_params)[1]
+dp_num = dim(xy_params)[1]
 mutal_dist_matrix <- matrix(, nrow = dp_num, ncol = dp_num)
 
 for (row_idx in 1:dp_num) {
@@ -396,43 +396,37 @@ nodeExtractWork <- function(the_Node_idx, allNode_Map) {
     the_Node$stability = 0
   }
   else { # for internal nodes
-    if (the_Node$stability > the_leftNode$stability + the_rightNode$stability) {
-      # if merge is more stable, we mark all children into the current node selfIdx
-      for (childIdx in the_Node$hashChildren) {
-        print(query(allNode_Map, as.character(childIdx)))
-        # print(temp_childNode$selfIdx)
-        temp_childNode$clusterBelongIdx <- the_Node$selfIdx
-      }
+    if (the_Node$stability >= the_leftNode$stability + the_rightNode$stability) {
 
       the_Node$stability = the_Node$stability
 
+      # if merge is more stable, we mark the two children into the same cluster idx
+      the_leftNode$clusterBelongIdx <- the_Node$selfIdx
+      the_rightNode$clusterBelongIdx <- the_Node$selfIdx
     }
-
-      # if split is more stable, the child node will be marked as the global noise as long as it is previously labelled as the potential outlier
     else {
+      # if split is more stable, the child node will be marked as the global noise as long as it is previously labelled as the potential outlier
+
       the_Node$stability = the_leftNode$stability + the_rightNode$stability
 
       # handle left child
       if (the_leftNode$potentialNoise == TRUE) {
+        the_leftNode$clusterBelongIdx <- 0
         the_leftNode$globalNoise <- TRUE
-
-        for (childIdx in the_leftNode$hashChildren) {
-          temp_childNode = query(allNode_Map, as.character(childIdx))
-          temp_childNode$clusterBelongIdx <- 0
-        }
+      }
+      else {
+        the_leftNode$clusterBelongIdx <- the_leftNode$selfIdx # leftNode is not a potential or global noise, it will become an independent cluster with its children
       }
 
       # handle right child
       if (the_rightNode$potentialNoise == TRUE) {
+        the_rightNode$clusterBelongIdx <- 0
         the_rightNode$globalNoise <- TRUE
-
-        for (childIdx in the_rightNode$hashChildren) {
-          temp_childNode = query(allNode_Map, as.character(childIdx))
-          temp_childNode$clusterBelongIdx <- 0
-        }
+      }
+      else {
+        the_rightNode$clusterBelongIdx <- the_rightNode$selfIdx # rightNode is not a potential or global noise, it will become an independent cluster with its children
       }
     }
-
   }
 }
 ```
@@ -464,7 +458,7 @@ posOrderRecur <- function(root, allNode_Map, cache) {
 ```
 ```{r}
 theCache <- list()
-start_root <- query(allNode_Map, as.character(-1))
+start_root <- query(allNode_Map, as.character(-dp_num + 1))
 theCache <- posOrderRecur(start_root, allNode_Map, theCache)
 length(theCache)
 ```
@@ -475,18 +469,9 @@ for (idx in theCache) {
 }
 ```
 ```{r}
-# query(allNode_Map, "1")
-# query(allNode_Map, "18")
-# query(allNode_Map, "-2")
-# length(query(allNode_Map, "-1")$hasChildren)
-# query(allNode_Map, "40")
-nodeExtractWork(-1, allNode_Map)
-
-```
-```{r}
-for (idx in query(allNode_Map, "-1")$hasChildren) {
-  print(idx)
-}
+query(allNode_Map, "1")
+query(allNode_Map, "18")
+query(allNode_Map, "-1")
 ```
 ```{r}
 clusterSet <- hashset()
