@@ -31,29 +31,29 @@ library(r2r)
 ```
 k_param and MCS need be to declared manually, we declare them at very top
 ```{r}
-k_param <- 30 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
-MCS <- 30  # minimum cluster size
+k_param <- 40 # the core distance of a point is the distance from the point to the k-th nearest neighbour.
+MCS <- 40  # minimum cluster size
 ```
 ```{r}
 # import the iris data from the docker
-result <- system("docker exec namenode hdfs dfs -cat ./input/iris.csv", intern = TRUE)
-writeLines(result, "./hdbscan_manual/temp_iris.csv")
-iris_data <- read.csv("./hdbscan_manual/temp_iris.csv",
-                      header = FALSE,
-                      colClasses = c(NA, NA, NA, NA, NA),
-                      col.names = c("sepal_length", "sepal_width", "petal_length", "petal_width", "species"))
+result <- system("docker exec namenode hdfs dfs -cat ./input/multishapes.csv", intern = TRUE)
+writeLines(result, "./hdbscan_auto/temp_multishape.csv")
+multishape_data <- read.csv("./hdbscan_auto/temp_multishape.csv",
+                            header = TRUE,
+                            colClasses = c("NULL", NA, NA, NA),
+                            col.names = c("idx", "x_coordinate", "y_coordinate", "shape_class"))
 ```
 ```{r}
 # subtract the iris_params, which only contain the sepal and petal numberical values
-iris_params <- iris_data[, -5]
-iris_params
+xy_params <- multishape_data[, -3]
+xy_params
 ```
 
 ## Part 1 - Work out the core distance, mutual reachability distance and mutual reachability distance graph
 
 ```{r}
 # create distance matrix for each data point pairs
-L2_dist_matrix = as.matrix(dist(iris_params, method = "euclidean"))
+L2_dist_matrix = as.matrix(dist(xy_params, method = "euclidean"))
 L2_dist_matrix
 ```
 ```{r}
@@ -65,7 +65,7 @@ core_dist[1]
 ```{r}
 
 # build the mutal distance matrix
-dp_num = dim(iris_params)[1]
+dp_num = dim(xy_params)[1]
 mutal_dist_matrix <- matrix(, nrow = dp_num, ncol = dp_num)
 
 for (row_idx in 1:dp_num) {
@@ -461,7 +461,7 @@ for (idx in 1:dp_num) {
   new_cluster_belongList <- append(new_cluster_belongList, new_cluster_belong)
 }
 
-# new_cluster_belongList
+print(length(cluster_map))
 ```
 ```{r}
 query(cluster_map, "-148") # 143 or 148
@@ -470,37 +470,21 @@ query(cluster_map, "-148") # 143 or 148
 # make the list into a cluster
 new_cluster_belongList_df <- t(data.frame(new_cluster_belongList))
 mycluster <- c()
-for (a in new_cluster_belongList) {
-  mycluster <- c(mycluster, a)
+for (itr in new_cluster_belongList) {
+  mycluster <- c(mycluster, itr)
 }
 
-# print(mycluster)
+print(mycluster)
 
 ```
 ```{r}
-plot(iris_params[c("sepal_length", "sepal_width")],
+plot(xy_params[c("x_coordinate", "y_coordinate")],
      col = mycluster + 1,
-     pch = 20,
-     main = "HDBSCAN with Iris Sepal Profile"
+     pch = 20
 )
-# #specifty x-axis interval
-# axis(side = 1, at = seq(4, 8, by = 0.5))
-# #specify y-axis interval
-# axis(side = 2, at = seq(2, 4.5, by = 1))
-
-plot(iris_params[c("petal_length", "petal_width")],
-     col = mycluster + 1,
-     pch = 20,
-     main = "HDBSCAN with Iris Petal Profile"
-)
-# #specifty x-axis interval
-# axis(side = 1, at = seq(1, 7, by = 1))
-# #specify y-axis interval
-# axis(side = 2, at = seq(0, 2.5, by = 0.5))
 ```
-
 ```{r}
 # # Confusion Matrix
-cm <- table(iris_data$species, mycluster)
+cm <- table(multishape_data$shape_class, mycluster)
 cm
 ```

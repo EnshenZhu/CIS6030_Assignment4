@@ -84,8 +84,8 @@ MinimumSpanning_matrix[upper.tri(MinimumSpanning_matrix)] <- 0
 ```
 The following part are all perspective automatic
 ```{r}
-hdbscan_model <- hdbscan(xy_params, minPts = 40)
-# hdbscan_model <- dbscan(xy_params, eps = 0.14)
+# hdbscan_model <- hdbscan(xy_params, minPts = 40)
+hdbscan_model <- dbscan(xy_params, eps = 0.15, minPts = 5)
 hdbscan_model
 ```
 ```{r}
@@ -96,7 +96,7 @@ cm
 ```
 ```{r}
 plot(xy_params[c("x_coordinate", "y_coordinate")], col = hdbscan_model$cluster + 1, pch = 20,
-     main = "HDBSCAN on Multishape Profile")
+     main = "DBSCAN on Multishape data")
 ```
 ```{r}
 ## Visualizing clusters
